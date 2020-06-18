@@ -1,0 +1,50 @@
+package main
+
+import (
+	"fmt"
+	"github.com/nikola43/KeysklubApi/utils"
+	"net/http"
+
+	"github.com/panjf2000/ants"
+)
+
+type User struct {
+	Name     string `json:"name"`
+	LastName string `json:"last_name"`
+}
+
+func main() {
+	pool, _ := ants.NewPoolWithFunc(100000, func(payload interface{}) {
+		user, ok := payload.(*User)
+		if !ok {
+			return
+		}
+		fmt.Println(user)
+
+		user.Name = " nom"
+		user.LastName = " ape"
+
+		fmt.Println(user)
+	})
+
+	defer pool.Release()
+
+	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+
+
+		request := &User{Name: "ddfdf", LastName:"pepe"}
+
+		// Throttle the requests traffic with ants pool. This process is asynchronous and
+		// you can receive a result from the channel defined outside.
+		if err := pool.Invoke(request); err != nil {
+			http.Error(w, "throttle limit error", http.StatusInternalServerError)
+		}
+		// fmt.Println(<-request.Result)
+
+		//w.Write([]byte(user.Name))
+		utils.RespondHttpRequest(w, nil, request)
+	})
+
+	http.ListenAndServe(":8080", nil)
+}
+
